@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emotion Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #000;
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Galaxy Canvas Background */
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        #space-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #000000, #0a0a23, #111);
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #FFD700;
+            text-shadow: 0px 2px 8px rgba(255, 215, 0, 0.7);
+        }
+
+        /* Main Container */
+        .container {
+            background: rgba(30, 30, 30, 0.9);
+            border-radius: 15px;
+            padding: 30px 20px;
+            box-shadow:
+                5px 5px 10px rgba(0, 0, 0, 0.6),
+                -5px -5px 10px rgba(255, 215, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            animation: fadeIn 1s ease-out;
+        }
+
+        h2 {
+            color: #ffffff;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(to right, #FFD700, #ffffff);
+            border: none;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow:
+                0 5px 10px rgba(255, 215, 0, 0.4),
+                0 0 0 transparent;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 8px 15px rgba(255, 215, 0, 0.5),
+                0 0 15px rgba(255, 215, 0, 0.7);
+        }
+
+        button:disabled {
+            background: #4a4a4a;
+            color: #888;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        #loading {
+            margin-top: 20px;
+            color: #FFD700;
+            font-style: italic;
+            display: none;
+        }
+
+        #emotion-result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #292929;
+            border-radius: 8px;
+            box-shadow:
+                inset 3px 3px 6px rgba(0, 0, 0, 0.5),
+                inset -3px -3px 6px rgba(255, 215, 0, 0.2);
+            color: #ffffff;
+            display: none;
+            font-size: 1.1rem;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        #joke-result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #1f1f1f;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #FFD700;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Galaxy Background -->
+    <div class="background">
+        <canvas id="space-canvas"></canvas>
+    </div>
+
+    <header>
+        <h1>Emotion Detector</h1>
+    </header>
+
+    <div class="container">
+        <h2>Click Below to Analyze Your Emotion</h2>
+        <button id="detect-emotion-btn">Detect Emotion</button>
+        <div id="loading">✨ Analyzing your face... Please wait.</div>
+        <div id="emotion-result"></div>
+        <button id="tell-joke-btn" style="display:none;">Tell me a joke</button>
+        <div id="joke-result"></div>
+    </div>
+
+    <footer>&copy; Face Emotion AI</footer>
+
+    <!-- Emotion Detector Script -->
+    <script>
+        document.getElementById('detect-emotion-btn').addEventListener('click', async () => {
+            const detectButton = document.getElementById('detect-emotion-btn');
+            const loadingDiv = document.getElementById('loading');
+            const resultDiv = document.getElementById('emotion-result');
+            const jokeButton = document.getElementById('tell-joke-btn');
+            const jokeDiv = document.getElementById('joke-result');
+
+            detectButton.disabled = true;
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            jokeButton.style.display = 'none';
+            jokeDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/detect_emotion', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.error) {
+                    resultDiv.innerHTML = `❌ Error: ${data.error}`;
+                } else {
+                    resultDiv.innerHTML = `😊 Emotion: <strong>${data.emotion}</strong><br>✨ Message: ${data.message}`;
+                    if (data.emotion === 'Sad') {
+                        jokeButton.style.display = 'block';
+                    }
+                }
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                resultDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+                detectButton.disabled = false;
+            }
+        });
+
+        document.getElementById('tell-joke-btn').addEventListener('click', async () => {
+            const jokeButton = document.getElementById('tell-joke-btn');
+            const jokeDiv = document.getElementById('joke-result');
+
+            jokeButton.disabled = true;
+            jokeDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/tell_joke');
+                const data = await response.json();
+                jokeDiv.innerHTML = `😂 Joke: ${data.joke}`;
+                jokeDiv.style.display = 'block';
+            } catch (error) {
+                jokeDiv.innerHTML = `❌ Error: ${error.message}`;
+                jokeDiv.style.display = 'block';
+            } finally {
+                jokeButton.disabled = false;
+            }
+        });
+    </script>
+
+    <!-- Galaxy Canvas Animation Script -->
+    <script>
+        const canvas = document.getElementById('space-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let stars = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5,
+                    speed: Math.random() * 0.2 + 0.05,
+                    alpha: Math.random(),
+                });
+            }
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let star of stars) {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = '#FFD700';
+                ctx.fill();
+
+                star.y += star.speed;
+                if (star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+            }
+            requestAnimationFrame(animateStars);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        animateStars();
+    </script>
+</body>
+
+</html>
